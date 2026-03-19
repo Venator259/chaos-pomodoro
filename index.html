@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1208">
-<title>Chaos Pomodoro — Roll Fate. Work Within It.</title>
+<title>Chaos Pomodoro — The Die Decides Your Fate. Work Within It.</title>
 <meta name="description" content="A D20-powered Pomodoro timer. Roll for your fate each session.">
 <meta property="og:title" content="Chaos Pomodoro">
 <meta property="og:description" content="A D20-powered Pomodoro timer. Roll fate. Work within it.">
@@ -257,8 +257,8 @@
       <div class="panel-title">Lore <span></span></div>
       <div class="lore-text">
         <p>The Chaos Pomodoro is no ordinary timer. It is a dungeon &mdash; and you are its prisoner.</p>
-        <p>Each session begins with a roll of the d20. Fate decides your labor and your rest.</p>
-        <p>A Natural 20 is legend. A full hour of glory, followed by 30 minutes of absolute freedom.</p>
+        <p>Each session begins with a roll of the d20. Fate decides your labour and your rest.</p>
+        <p>A Natural 20 is legend. A full hour of glory, followed by 30 minutes of freedom.</p>
         <p>Roll well. Work hard. Survive.</p>
       </div>
     </div>
@@ -334,7 +334,7 @@
       <button class="btn-action" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
       <button class="btn-action btn-danger" id="btn-abandon" onclick="abandonSession()" disabled>Abandon</button>
     </div>
-    <div class="log-strip" id="log-strip">The dungeon awaits your first move.</div>
+    <div class="log-strip" id="log-strip">The die awaits your first move.</div>
 
     <div class="mobile-stats" id="mobile-stats">
       <div class="m-stat"><div class="m-stat-num" id="m-sessions">0</div><div class="m-stat-label">Sessions</div></div>
@@ -365,7 +365,7 @@ const TODAY_KEY = new Date().toISOString().slice(0, 10);
 
 const FATE_TABLE = [
   { roll:1,  type:'curse',   work:5,   break:15, title:"Critical Failure", desc:"The gods mock you. 5 minutes of toil, then 15 of enforced rest. You may not look at your task during the break.", tag:'tag-curse', chaos:"Stand up and walk to a different room before sitting back down." },
-  { roll:2,  type:'curse',   work:10,  break:5,  title:"The Dungeon Drains You", desc:"Damp walls, flickering torch. 10 minutes of labor in near-darkness.", tag:'tag-curse', chaos:"Work with one hand only." },
+  { roll:2,  type:'curse',   work:10,  break:5,  title:"The Dungeon Drains You", desc:"Damp walls, flickering torch. 10 minutes of labour in near-darkness.", tag:'tag-curse', chaos:"Work with one hand only." },
   { roll:3,  type:'curse',   work:15,  break:5,  title:"Cursed Scroll", desc:"Something's wrong with your tools. 15 minutes. Speak one problem aloud before you begin.", tag:'tag-curse', chaos:"Narrate your work quietly as you do it." },
   { roll:4,  type:'neutral', work:20,  break:5,  title:"The Standard Path", desc:"A modest 20-minute quest. Neither cursed nor blessed. Earn your rest.", tag:'tag-neutral', chaos:null },
   { roll:5,  type:'neutral', work:25,  break:7,  title:"Torch & Shadow", desc:"25 minutes in the corridor. The exit is visible but not close.", tag:'tag-neutral', chaos:null },
@@ -380,17 +380,17 @@ const FATE_TABLE = [
   { roll:14, type:'chaos',   work:45,  break:10, title:"The Dragon's Challenge", desc:"45 minutes. Stand and work. You may not sit during this session.", tag:'tag-chaos', chaos:"You must stand for the entire session." },
   { roll:15, type:'boon',    work:40,  break:12, title:"Ancient Boon", desc:"The treasure room opens. 40 focused minutes, 12 restful ones.", tag:'tag-boon', chaos:null },
   { roll:16, type:'chaos',   work:30,  break:15, title:"The Mirror Curse", desc:"30 work, 15 rest — but during the break all screens must close.", tag:'tag-chaos', chaos:"Break is fully screen-free. Eyes closed, walk outside, or stretch." },
-  { roll:17, type:'boon',    work:50,  break:15, title:"Champion's Focus", desc:"50 minutes of sharpened will. The dungeon bends to your momentum.", tag:'tag-boon', chaos:null },
-  { roll:18, type:'boon',    work:55,  break:15, title:"The Legendary Run", desc:"55 minutes of deep-dungeon focus. The bards will record this feat.", tag:'tag-boon', chaos:null },
+  { roll:17, type:'boon',    work:50,  break:15, title:"Champion's Focus", desc:"50 minutes of sharpened will. Reality bends to your momentum.", tag:'tag-boon', chaos:null },
+  { roll:18, type:'boon',    work:55,  break:15, title:"The Legendary Run", desc:"55 minutes of deep focus. Bards will sing of this feat.", tag:'tag-boon', chaos:null },
   { roll:19, type:'boon',    work:60,  break:20, title:"Near-Perfect", desc:"A full hour of focused glory rewarded with 20 minutes of well-earned rest.", tag:'tag-boon', chaos:null },
-  { roll:20, type:'boon',    work:60,  break:30, title:"Natural 20 — LEGENDARY", desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dungeon bows. You ARE the chaos.", tag:'tag-legendary', chaos:"Reward yourself with something genuinely good after the break." },
+  { roll:20, type:'boon',    work:60,  break:30, title:"Natural 20 — LEGENDARY", desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dark wizard bows. You ARE the chaos.", tag:'tag-legendary', chaos:"Reward yourself with something genuinely good after the break." },
 ];
 
 const QUESTS = [
   "Clear one physical item from your desk or nearby space.",
   "Write down what 'done' looks like for your current task.",
   "Send the reply you've been putting off.",
-  "Process 10 inbox items — archive, reply, or delete.",
+  "Process 10 unread emails or texts — archive, reply, or delete.",
   "Identify the one thing that, if finished, makes today a win.",
   "Review yesterday's notes for anything unfinished.",
   "Write the first sentence of something you've been avoiding.",
@@ -413,7 +413,7 @@ const QUESTS = [
 // ACHIEVEMENTS
 // ═══════════════════════════════════════════
 const ACHIEVEMENTS = [
-  { id: 'first_blood',     icon: '⚔️', name: 'First Blood',          desc: 'Complete your first session',        test: s => s.allTimeSessions >= 1 },
+  { id: 'first_blood',     icon: '⚔️', name: 'The Beginning Begins',          desc: 'Complete your first session',        test: s => s.allTimeSessions >= 1 },
   { id: 'nat20',           icon: '👑', name: 'The Chosen One',        desc: 'Roll a Natural 20',                  test: s => s.hasRolledNat20 },
   { id: 'crit_fail',       icon: '💀', name: 'Rock Bottom',           desc: 'Survive a Critical Failure (roll 1)', test: s => s.hasRolledNat1 },
   { id: 'curse_streak_3',  icon: '🩸', name: 'Cursed Blood',          desc: 'Survive 3 curses in one day',        test: s => s.curses >= 3 },
@@ -853,7 +853,7 @@ function abandonSession() {
   document.getElementById('d20-face').textContent = '20';
   document.getElementById('fate-scroll').classList.add('hidden');
   document.getElementById('quest-scroll').classList.add('hidden');
-  document.getElementById('log-strip').textContent = 'Session abandoned. The dungeon does not forget. Roll again.';
+  document.getElementById('log-strip').textContent = 'Session abandoned. There will be consequences. Roll again.';
   document.getElementById('timer-digits').textContent = '\u2014:\u2014\u2014';
   document.getElementById('timer-sub').textContent = 'roll to begin';
   document.getElementById('timer-arc').style.strokeDashoffset = 0;
