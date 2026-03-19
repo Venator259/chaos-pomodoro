@@ -257,7 +257,7 @@ const FATE_TABLE = [
     desc:"30 work, 15 rest — but during the break all screens must close.",
     tag:'tag-chaos', chaos:"Break is fully screen-free. Eyes closed, walk outside, or stretch." },
   { roll:17, type:'boon',    work:50,  break:15, title:"Champion's Focus",
-    desc:"50 minutes of sharpened will. The dungeon bends to your momentum.",
+    desc:"50 minutes of sharpened will. Reality bends to your momentum.",
     tag:'tag-boon', chaos:null },
   { roll:18, type:'boon',    work:55,  break:15, title:"The Legendary Run",
     desc:"55 minutes of deep-dungeon focus. The bards will record this feat.",
@@ -266,15 +266,15 @@ const FATE_TABLE = [
     desc:"A full hour of focused glory rewarded with 20 minutes of well-earned rest.",
     tag:'tag-boon', chaos:null },
   { roll:20, type:'boon',    work:60,  break:30, title:"Natural 20 — LEGENDARY",
-    desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dungeon bows. You ARE the chaos.",
+    desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dark wizard bows. You ARE the chaos.",
     tag:'tag-legendary', chaos:"Reward yourself with something genuinely good after the break." },
 ];
 
 const QUESTS = [
   "Clear one physical item from your desk or nearby space.",
   "Write down what 'done' looks like for your current task.",
-  "Send the reply you've been putting off.",
-  "Process 10 inbox items — archive, reply, or delete.",
+  "Send the text or e-mail you've been putting off.",
+  "Process 10 emails or unread texts — archive, reply, or delete.",
   "Identify the one thing that, if finished, makes today a win.",
   "Review yesterday's notes for anything unfinished.",
   "Write the first sentence of something you've been avoiding.",
@@ -343,7 +343,7 @@ function showFate() {
   document.getElementById('btn-start').disabled = false;
 
   const msg = f.roll === 20
-    ? 'NATURAL 20. The dungeon trembles. A full hour awaits — then 30 minutes of freedom.'
+    ? 'NATURAL 20. The ground trembles. A full hour awaits — then 30 minutes of freedom.'
     : 'A ' + f.roll + ' — ' + f.title + '. Prepare yourself.';
   document.getElementById('log-strip').textContent = msg;
   setTimerDisplay(f.work * 60, f.work * 60);
@@ -443,7 +443,7 @@ function abandonSession() {
   document.getElementById('d20-face').textContent = '20';
   document.getElementById('fate-scroll').classList.add('hidden');
   document.getElementById('quest-scroll').classList.add('hidden');
-  document.getElementById('log-strip').textContent = 'Session abandoned. The dungeon does not forget. Roll again.';
+  document.getElementById('log-strip').textContent = 'Session abandoned. There will be consequences. Roll again.';
   document.getElementById('timer-digits').textContent = '—:——';
   document.getElementById('timer-sub').textContent = 'roll to begin';
   document.getElementById('timer-arc').style.strokeDashoffset = 0;
