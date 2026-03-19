@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1208">
-<title>Chaos Pomodoro — Roll Fate. Work Within It.</title>
+<title>Chaos Pomodoro — Roll Your Fate. Work Within It.</title>
 <meta name="description" content="A D20-powered Pomodoro timer. Roll for your fate each session.">
 <meta property="og:title" content="Chaos Pomodoro">
-<meta property="og:description" content="A D20-powered Pomodoro timer. Roll fate. Work within it.">
+<meta property="og:description" content="A D20-powered Pomodoro timer. Roll your fate. Work within it.">
 <meta property="og:type" content="website">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -257,9 +257,9 @@
       <div class="panel-title">Lore <span></span></div>
       <div class="lore-text">
         <p>The Chaos Pomodoro is no ordinary timer. It is a dungeon &mdash; and you are its prisoner.</p>
-        <p>Each session begins with a roll of the d20. Fate decides your labor and your rest.</p>
-        <p>A Natural 20 is legend. A full hour of glory, followed by 30 minutes of absolute freedom.</p>
-        <p>Roll well. Work hard. Survive.</p>
+        <p>Each session begins with a roll of the d20. Fate decides your labours and your rests.</p>
+        <p>A Natural 20 is legend. A full hour of glory, followed by 30 minutes of freedom.</p>
+        <p>Roll well. Work hard. Survive. Maybe.</p>
       </div>
     </div>
   </div>
@@ -268,14 +268,14 @@
   <div class="center-column">
     <div class="title-block">
       <h1>Chaos Pomodoro</h1>
-      <p class="subtitle">Roll fate. Work within it.</p>
+      <p class="subtitle">Roll your fate. Work within it.</p>
     </div>
     <div class="rune-divider">&#x2726; &#x2726; &#x2726;</div>
 
     <div class="phase-banner">
       <div>
         <div class="phase-label">Current Phase</div>
-        <div class="phase-name" id="phase-name">Awaiting the Roll</div>
+        <div class="phase-name" id="phase-name">Awaiting Your Roll</div>
       </div>
       <div class="session-count" id="session-count">Session 0</div>
     </div>
@@ -334,7 +334,7 @@
       <button class="btn-action" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
       <button class="btn-action btn-danger" id="btn-abandon" onclick="abandonSession()" disabled>Abandon</button>
     </div>
-    <div class="log-strip" id="log-strip">The dungeon awaits your first move.</div>
+    <div class="log-strip" id="log-strip">The die awaits your roll.</div>
 
     <div class="mobile-stats" id="mobile-stats">
       <div class="m-stat"><div class="m-stat-num" id="m-sessions">0</div><div class="m-stat-label">Sessions</div></div>
@@ -390,12 +390,12 @@ const QUESTS = [
   "Clear one physical item from your desk or nearby space.",
   "Write down what 'done' looks like for your current task.",
   "Send the reply you've been putting off.",
-  "Process 10 inbox items — archive, reply, or delete.",
+  "Process 10 unread emails or texts — archive, reply, or delete.",
   "Identify the one thing that, if finished, makes today a win.",
   "Review yesterday's notes for anything unfinished.",
   "Write the first sentence of something you've been avoiding.",
   "Eliminate one open browser tab you don't need.",
-  "Label or file three loose documents.",
+  "Tidy the physical space around you.",
   "Identify your next physical action on your hardest task.",
   "Write a 3-bullet status note for your current project.",
   "Set a timer and do 5 minutes of the thing you least want to do.",
@@ -403,9 +403,9 @@ const QUESTS = [
   "Read one thing you've been putting off reading.",
   "Draft a one-sentence summary of what you're working on.",
   "Check your calendar for tomorrow and prepare one thing.",
-  "Capture every open loop in your head onto paper.",
+  "Capture every untamed thought in your head onto paper.",
   "Do the most boring part of your current task first.",
-  "Update your task list to reflect current reality.",
+  "Update your to-do list to reflect current reality.",
   "Pick the smallest possible version of your next goal.",
 ];
 
@@ -413,18 +413,18 @@ const QUESTS = [
 // ACHIEVEMENTS
 // ═══════════════════════════════════════════
 const ACHIEVEMENTS = [
-  { id: 'first_blood',     icon: '⚔️', name: 'First Blood',          desc: 'Complete your first session',        test: s => s.allTimeSessions >= 1 },
+  { id: 'first_blood',     icon: '⚔️', name: 'The Beginning Begins',  desc: 'Complete your first session',        test: s => s.allTimeSessions >= 1 },
   { id: 'nat20',           icon: '👑', name: 'The Chosen One',        desc: 'Roll a Natural 20',                  test: s => s.hasRolledNat20 },
   { id: 'crit_fail',       icon: '💀', name: 'Rock Bottom',           desc: 'Survive a Critical Failure (roll 1)', test: s => s.hasRolledNat1 },
   { id: 'curse_streak_3',  icon: '🩸', name: 'Cursed Blood',          desc: 'Survive 3 curses in one day',        test: s => s.curses >= 3 },
-  { id: 'curse_streak_5',  icon: '😈', name: 'Curse Eater',           desc: 'Survive 5 curses in one day',        test: s => s.curses >= 5 },
+  { id: 'curse_streak_5',  icon: '😈', name: 'The Accursed One',      desc: 'Survive 5 curses in one day',        test: s => s.curses >= 5 },
   { id: 'sessions_5',      icon: '🔥', name: 'Warmed Up',             desc: 'Complete 5 sessions in one day',     test: s => s.sessions >= 5 },
   { id: 'sessions_10',     icon: '⚡', name: 'Unstoppable',           desc: 'Complete 10 sessions in one day',    test: s => s.sessions >= 10 },
   { id: 'hour_4',          icon: '🏰', name: 'Dungeon Crawler',       desc: 'Accumulate 4 hours of work in a day', test: s => s.totalWorkMin >= 240 },
   { id: 'hour_8',          icon: '🐉', name: 'Dragon Slayer',         desc: 'Accumulate 8 hours of work in a day', test: s => s.totalWorkMin >= 480 },
   { id: 'all_time_25',     icon: '📜', name: 'Chronicler',            desc: 'Complete 25 sessions all-time',      test: s => s.allTimeSessions >= 25 },
   { id: 'all_time_50',     icon: '🗡️', name: 'Veteran',               desc: 'Complete 50 sessions all-time',      test: s => s.allTimeSessions >= 50 },
-  { id: 'all_time_100',    icon: '🏆', name: 'Legend of the Dungeon',  desc: 'Complete 100 sessions all-time',     test: s => s.allTimeSessions >= 100 },
+  { id: 'all_time_100',    icon: '🏆', name: 'Legend of Faerun',      desc: 'Complete 100 sessions all-time',     test: s => s.allTimeSessions >= 100 },
   { id: 'all_time_500',    icon: '✨', name: 'Ascended',              desc: 'Complete 500 sessions all-time',     test: s => s.allTimeSessions >= 500 },
   { id: 'every_roll',      icon: '🎲', name: 'Fate Collector',        desc: 'Roll every number 1-20 at least once', test: s => s.uniqueRolls >= 20 },
 ];
@@ -670,7 +670,7 @@ async function requestNotifPermission() {
   const result = await Notification.requestPermission();
   updateNotifButton();
   if (result === 'granted') {
-    showToast('🔔', 'Notifications Enabled', 'The dungeon will alert you when time is up.');
+    showToast('🔔', 'Notifications Enabled', 'The DM will alert you when time is up.');
   }
 }
 
