@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1208">
+<title>Chaos Pomodoro — Roll Fate. Work Within It.</title>
+<meta name="description" content="A D20-powered Pomodoro timer. Roll for your fate each session.">
+<!-- Open Graph for link previews -->
+<meta property="og:title" content="Chaos Pomodoro">
+<meta property="og:description" content="A D20-powered Pomodoro timer. Roll fate. Work within it.">
+<meta property="og:type" content="website">
+</head>
+<body>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+  :root {
+    --parch: #1a1208; --parch2: #221a0a; --gold: #c9943a; --gold2: #e8b84b;
+    --blood: #8b1a1a; --ember: #c44b1a; --bone: #d4c49a; --fog: #7a6e5a;
+    --gloom: #2a2010;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--parch); margin: 0; padding: 0; min-height: 100vh; min-height: 100dvh; }
+  #chaos-app {
+    background: var(--parch); min-height: 100vh; min-height: 100dvh; padding: 20px 16px 24px;
+    font-family: 'Crimson Text', Georgia, serif; color: var(--bone); position: relative; overflow: hidden;
+    max-width: 540px; margin: 0 auto;
+  }
+  #chaos-app::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(201,148,58,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(139,26,26,0.12) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .title-block { text-align: center; margin-bottom: 18px; }
+  .title-block h1 { font-family: 'Cinzel', serif; font-size: 22px; font-weight: 600; color: var(--gold2); letter-spacing: 3px; text-transform: uppercase; line-height: 1.2; }
+  .title-block p { font-size: 13px; color: var(--fog); font-style: italic; margin-top: 3px; letter-spacing: 1px; }
+  .rune-divider { text-align: center; color: var(--gold); font-size: 14px; letter-spacing: 8px; margin: 10px 0; opacity: 0.6; }
+  .phase-banner { background: var(--gloom); border: 1px solid var(--gold); border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .phase-label { font-family: 'Cinzel', serif; font-size: 11px; color: var(--fog); letter-spacing: 2px; text-transform: uppercase; }
+  .phase-name { font-family: 'Cinzel', serif; font-size: 15px; color: var(--gold2); font-weight: 600; }
+  .session-count { font-size: 13px; color: var(--fog); font-style: italic; }
+  .timer-display { text-align: center; margin: 16px 0 14px; position: relative; }
+  .timer-ring { position: relative; display: inline-block; }
+  .timer-svg { transform: rotate(-90deg); }
+  .timer-ring-bg { fill: none; stroke: var(--gloom); stroke-width: 6; }
+  .timer-ring-fg { fill: none; stroke: var(--gold); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .timer-ring-fg.urgent { stroke: var(--blood); }
+  .timer-text-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-digits { font-family: 'Cinzel', serif; font-size: 36px; font-weight: 600; color: var(--bone); letter-spacing: 2px; line-height: 1; }
+  .timer-sub { font-size: 11px; color: var(--fog); letter-spacing: 2px; margin-top: 4px; }
+  .scroll-pane { background: var(--parch2); border: 1px solid rgba(201,148,58,0.3); border-radius: 4px; padding: 12px 14px; margin-bottom: 12px; min-height: 80px; }
+  .scroll-pane.hidden { display: none; }
+  .scroll-header { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .scroll-header span { flex: 1; height: 1px; background: rgba(201,148,58,0.25); }
+  .scroll-body { font-size: 15px; color: var(--bone); line-height: 1.55; font-style: italic; }
+  .chaos-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-family: 'Cinzel', serif; letter-spacing: 1px; margin-top: 6px; font-style: normal; }
+  .tag-curse { background: rgba(139,26,26,0.4); color: #e88; border: 1px solid var(--blood); }
+  .tag-boon { background: rgba(58,130,58,0.3); color: #8e8; border: 1px solid #3a823a; }
+  .tag-chaos { background: rgba(180,80,20,0.35); color: #f8a060; border: 1px solid var(--ember); }
+  .tag-neutral { background: rgba(120,110,80,0.35); color: var(--bone); border: 1px solid var(--fog); }
+  .tag-legendary { background: rgba(201,148,58,0.25); color: var(--gold2); border: 1px solid var(--gold); }
+  .d20-zone { display: flex; align-items: center; justify-content: center; margin: 12px 0; }
+  .d20-btn { position: relative; cursor: pointer; background: none; border: none; padding: 10px; transition: transform 0.15s; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .d20-btn:hover { transform: scale(1.06); }
+  .d20-btn:active { transform: scale(0.95); }
+  .d20-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .d20-btn svg { display: block; }
+  .d20-btn.rolling .d20-poly { animation: diceRoll 0.8s cubic-bezier(0.36,0.07,0.19,0.97); }
+  @keyframes diceRoll {
+    0%   { transform-origin: 50px 55px; transform: rotate(0deg); }
+    20%  { transform-origin: 50px 55px; transform: rotate(72deg) scale(1.15); }
+    40%  { transform-origin: 50px 55px; transform: rotate(144deg) scale(0.9); }
+    60%  { transform-origin: 50px 55px; transform: rotate(216deg) scale(1.08); }
+    80%  { transform-origin: 50px 55px; transform: rotate(288deg) scale(0.95); }
+    100% { transform-origin: 50px 55px; transform: rotate(360deg) scale(1); }
+  }
+  .d20-btn.nat20 .d20-poly { animation: nat20Roll 1.2s cubic-bezier(0.36,0.07,0.19,0.97); }
+  @keyframes nat20Roll {
+    0%   { transform-origin: 50px 55px; transform: rotate(0deg) scale(1); }
+    25%  { transform-origin: 50px 55px; transform: rotate(180deg) scale(1.3); }
+    50%  { transform-origin: 50px 55px; transform: rotate(360deg) scale(0.85); }
+    75%  { transform-origin: 50px 55px; transform: rotate(540deg) scale(1.2); }
+    100% { transform-origin: 50px 55px; transform: rotate(720deg) scale(1); }
+  }
+  .d20-roll-label { font-family: 'Cinzel', serif; font-size: 11px; color: var(--fog); letter-spacing: 2px; text-align: center; margin-top: 6px; text-transform: uppercase; }
+  .controls { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-action { flex: 1; padding: 12px 0; min-height: 44px; background: var(--gloom); border: 1px solid rgba(201,148,58,0.4); border-radius: 4px; color: var(--bone); font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: background 0.2s, border-color 0.2s; touch-action: manipulation; }
+  .btn-action:hover { background: rgba(201,148,58,0.12); border-color: var(--gold); }
+  .btn-action:active { transform: scale(0.98); }
+  .btn-action:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary { background: rgba(201,148,58,0.18); border-color: var(--gold); color: var(--gold2); }
+  .btn-primary:hover { background: rgba(201,148,58,0.28); }
+  .btn-danger { background: rgba(139,26,26,0.25); border-color: var(--blood); color: #e88; }
+  .btn-danger:hover { background: rgba(139,26,26,0.4); }
+  .log-strip { margin-top: 14px; font-size: 12px; color: var(--fog); font-style: italic; text-align: center; min-height: 18px; letter-spacing: 0.5px; }
+
+  /* Mobile-first responsive */
+  @media (max-width: 380px) {
+    .title-block h1 { font-size: 18px; letter-spacing: 2px; }
+    .timer-digits { font-size: 30px; }
+    .phase-banner { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .controls { flex-wrap: wrap; }
+    .btn-action { font-size: 11px; letter-spacing: 1px; }
+    .scroll-body { font-size: 14px; }
+    .d20-btn svg { width: 85px; height: 94px; }
+  }
+
+  @media (min-width: 381px) and (max-width: 480px) {
+    .title-block h1 { font-size: 20px; }
+    .timer-digits { font-size: 34px; }
+  }
+
+  @media (min-width: 481px) {
+    #chaos-app { padding: 24px 20px 28px; }
+    .timer-digits { font-size: 38px; }
+  }
+
+  /* Prevent text size adjustment on orientation change */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+  /* Safe area insets for notched phones */
+  #chaos-app {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+</style>
+
+<div id="chaos-app">
+  <div class="title-block">
+    <h1>Chaos Pomodoro</h1>
+    <p>Roll fate. Work within it.</p>
+  </div>
+  <div class="rune-divider">✦ ✦ ✦</div>
+
+  <div class="phase-banner">
+    <div>
+      <div class="phase-label">Current Phase</div>
+      <div class="phase-name" id="phase-name">Awaiting the Roll</div>
+    </div>
+    <div class="session-count" id="session-count">Session 0</div>
+  </div>
+
+  <div class="timer-display">
+    <div class="timer-ring">
+      <svg class="timer-svg" width="140" height="140" viewBox="0 0 140 140">
+        <circle class="timer-ring-bg" cx="70" cy="70" r="58"/>
+        <circle class="timer-ring-fg" id="timer-arc" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-text-wrap">
+        <div class="timer-digits" id="timer-digits">—:——</div>
+        <div class="timer-sub" id="timer-sub">roll to begin</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-pane hidden" id="fate-scroll">
+    <div class="scroll-header">Fate Decreed <span></span></div>
+    <div class="scroll-body" id="fate-text"></div>
+    <div id="fate-tag"></div>
+  </div>
+
+  <div class="scroll-pane hidden" id="quest-scroll">
+    <div class="scroll-header">Quest <span></span></div>
+    <div class="scroll-body" id="quest-text"></div>
+  </div>
+
+  <div class="d20-zone">
+    <div>
+      <button class="d20-btn" id="d20-btn" onclick="rollDice()">
+        <svg width="100" height="110" viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg">
+          <g class="d20-poly">
+            <polygon points="50,4 96,28 96,82 50,106 4,82 4,28" fill="#1e1508" stroke="#c9943a" stroke-width="1.5"/>
+            <polygon points="50,4 72,28 50,28 28,28" fill="#2a1e0a" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="50,106 72,82 50,82 28,82" fill="#2a1e0a" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="4,28 28,28 16,55" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="96,28 84,55 72,28" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="4,82 16,55 28,82" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="96,82 72,82 84,55" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+            <polygon points="28,28 50,28 28,55 16,55" fill="#1e1206" stroke="#c9943a" stroke-width="0.8"/>
+            <polygon points="50,28 72,28 84,55 50,55" fill="#221507" stroke="#c9943a" stroke-width="0.8"/>
+            <polygon points="28,55 50,55 50,82 28,82" fill="#1e1206" stroke="#c9943a" stroke-width="0.8"/>
+            <polygon points="50,55 84,55 72,82 50,82" fill="#221507" stroke="#c9943a" stroke-width="0.8"/>
+            <polygon points="16,55 28,55 28,82 4,82" fill="#1a1005" stroke="#c9943a" stroke-width="0.8"/>
+            <polygon points="84,55 96,82 72,82 84,55" fill="#1a1005" stroke="#c9943a" stroke-width="0.8"/>
+            <text x="50" y="62" text-anchor="middle" font-family="Cinzel, serif" font-size="22" font-weight="600" fill="#e8b84b" id="d20-face">20</text>
+          </g>
+        </svg>
+      </button>
+      <div class="d20-roll-label" id="d20-label">Click to roll</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-action btn-primary" id="btn-start" onclick="startTimer()" disabled>Begin Work</button>
+    <button class="btn-action" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
+    <button class="btn-action btn-danger" id="btn-abandon" onclick="abandonSession()" disabled>Abandon</button>
+  </div>
+
+  <div class="log-strip" id="log-strip">The dungeon awaits your first move.</div>
+</div>
+
+<script>
+const CIRCUMFERENCE = 2 * Math.PI * 58;
+
+// Break values: mostly 5–15, a few 20s on high boons, only NAT 20 gets 30.
+const FATE_TABLE = [
+  { roll:1,  type:'curse',   work:5,   break:15, title:"Critical Failure",
+    desc:"The gods mock you. 5 minutes of toil, then 15 of enforced rest. You may not look at your task during the break.",
+    tag:'tag-curse', chaos:"Stand up and walk to a different room before sitting back down." },
+  { roll:2,  type:'curse',   work:10,  break:5,  title:"The Dungeon Drains You",
+    desc:"Damp walls, flickering torch. 10 minutes of labor in near-darkness.",
+    tag:'tag-curse', chaos:"Work with one hand only." },
+  { roll:3,  type:'curse',   work:15,  break:5,  title:"Cursed Scroll",
+    desc:"Something's wrong with your tools. 15 minutes. Speak one problem aloud before you begin.",
+    tag:'tag-curse', chaos:"Narrate your work quietly as you do it." },
+  { roll:4,  type:'neutral', work:20,  break:5,  title:"The Standard Path",
+    desc:"A modest 20-minute quest. Neither cursed nor blessed. Earn your rest.",
+    tag:'tag-neutral', chaos:null },
+  { roll:5,  type:'neutral', work:25,  break:7,  title:"Torch & Shadow",
+    desc:"25 minutes in the corridor. The exit is visible but not close.",
+    tag:'tag-neutral', chaos:null },
+  { roll:6,  type:'neutral', work:20,  break:8,  title:"The Winding Stair",
+    desc:"20 minutes of ascent. Steady footing required.",
+    tag:'tag-neutral', chaos:null },
+  { roll:7,  type:'chaos',   work:25,  break:5,  title:"The Goblin's Deal",
+    desc:"25 minutes — but write your next task on paper before starting.",
+    tag:'tag-chaos', chaos:"Write your single most important next step on paper right now." },
+  { roll:8,  type:'neutral', work:30,  break:8,  title:"Guarded Corridor",
+    desc:"30 minutes. Stay vigilant. Keep distractions beyond the threshold.",
+    tag:'tag-neutral', chaos:null },
+  { roll:9,  type:'boon',    work:25,  break:10, title:"Minor Enchantment",
+    desc:"25 minutes of work, and fate grants a 10-minute restoration.",
+    tag:'tag-boon', chaos:null },
+  { roll:10, type:'neutral', work:30,  break:10, title:"The Standard Dungeon",
+    desc:"A true 30-minute Pomodoro. Classic. Respectable. No tricks.",
+    tag:'tag-neutral', chaos:null },
+  { roll:11, type:'neutral', work:35,  break:10, title:"Second Watch",
+    desc:"The dungeon deepens. 35 minutes of unbroken effort.",
+    tag:'tag-neutral', chaos:null },
+  { roll:12, type:'chaos',   work:40,  break:8,  title:"Haste Enchantment",
+    desc:"40 minutes — pick ONE task and do only that. No switching.",
+    tag:'tag-chaos', chaos:"Choose one task before the timer starts. You cannot switch." },
+  { roll:13, type:'boon',    work:35,  break:12, title:"Blessed Chamber",
+    desc:"35 minutes of work blessed by 12 minutes of genuine restoration.",
+    tag:'tag-boon', chaos:null },
+  { roll:14, type:'chaos',   work:45,  break:10, title:"The Dragon's Challenge",
+    desc:"45 minutes. Stand and work. You may not sit during this session.",
+    tag:'tag-chaos', chaos:"You must stand for the entire session." },
+  { roll:15, type:'boon',    work:40,  break:12, title:"Ancient Boon",
+    desc:"The treasure room opens. 40 focused minutes, 12 restful ones.",
+    tag:'tag-boon', chaos:null },
+  { roll:16, type:'chaos',   work:30,  break:15, title:"The Mirror Curse",
+    desc:"30 work, 15 rest — but during the break all screens must close.",
+    tag:'tag-chaos', chaos:"Break is fully screen-free. Eyes closed, walk outside, or stretch." },
+  { roll:17, type:'boon',    work:50,  break:15, title:"Champion's Focus",
+    desc:"50 minutes of sharpened will. The dungeon bends to your momentum.",
+    tag:'tag-boon', chaos:null },
+  { roll:18, type:'boon',    work:55,  break:15, title:"The Legendary Run",
+    desc:"55 minutes of deep-dungeon focus. The bards will record this feat.",
+    tag:'tag-boon', chaos:null },
+  { roll:19, type:'boon',    work:60,  break:20, title:"Near-Perfect",
+    desc:"A full hour of focused glory rewarded with 20 minutes of well-earned rest.",
+    tag:'tag-boon', chaos:null },
+  { roll:20, type:'boon',    work:60,  break:30, title:"Natural 20 — LEGENDARY",
+    desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dungeon bows. You ARE the chaos.",
+    tag:'tag-legendary', chaos:"Reward yourself with something genuinely good after the break." },
+];
+
+const QUESTS = [
+  "Clear one physical item from your desk or nearby space.",
+  "Write down what 'done' looks like for your current task.",
+  "Send the reply you've been putting off.",
+  "Process 10 inbox items — archive, reply, or delete.",
+  "Identify the one thing that, if finished, makes today a win.",
+  "Review yesterday's notes for anything unfinished.",
+  "Write the first sentence of something you've been avoiding.",
+  "Eliminate one open browser tab you don't need.",
+  "Label or file three loose documents.",
+  "Identify your next physical action on your hardest task.",
+  "Write a 3-bullet status note for your current project.",
+  "Set a timer and do 5 minutes of the thing you least want to do.",
+  "Clear your desktop of anything older than one week.",
+  "Read one thing you've been putting off reading.",
+  "Draft a one-sentence summary of what you're working on.",
+  "Check your calendar for tomorrow and prepare one thing.",
+  "Capture every open loop in your head onto paper.",
+  "Do the most boring part of your current task first.",
+  "Update your task list to reflect current reality.",
+  "Pick the smallest possible version of your next goal.",
+];
+
+let state = { phase:'idle', roll:null, fate:null, totalSeconds:0, remaining:0, interval:null, sessions:0, paused:false };
+
+function rollDice() {
+  if (state.interval) return;
+  const btn = document.getElementById('d20-btn');
+  const face = document.getElementById('d20-face');
+  const label = document.getElementById('d20-label');
+  btn.classList.remove('nat20');
+  btn.classList.add('rolling');
+  btn.disabled = true;
+  let tick = 0;
+  const flash = setInterval(() => {
+    face.textContent = Math.ceil(Math.random() * 20);
+    tick++;
+    if (tick >= 12) {
+      clearInterval(flash);
+      const result = Math.ceil(Math.random() * 20);
+      face.textContent = result;
+      state.roll = result;
+      state.fate = FATE_TABLE[result - 1];
+      btn.classList.remove('rolling');
+      if (result === 20) {
+        btn.classList.add('nat20');
+        setTimeout(() => btn.classList.remove('nat20'), 1300);
+      }
+      label.textContent = 'Rolled: ' + result;
+      showFate();
+      btn.disabled = false;
+    }
+  }, 65);
+}
+
+function showFate() {
+  const f = state.fate;
+  document.getElementById('fate-text').textContent =
+    f.title + '. ' + f.desc + ' Work: ' + f.work + ' min. Break: ' + f.break + ' min.';
+
+  const tagMap = { curse:'Cursed', boon:'Boon', chaos:'Chaotic', neutral:'Standard' };
+  const tagLabel = f.roll === 20 ? 'Legendary' : tagMap[f.type];
+  let tagHTML = '<span class="chaos-tag ' + f.tag + '">' + tagLabel + '</span>';
+  if (f.chaos) tagHTML += ' <span class="chaos-tag tag-chaos">Chaos: ' + f.chaos + '</span>';
+  document.getElementById('fate-tag').innerHTML = tagHTML;
+
+  document.getElementById('fate-scroll').classList.remove('hidden');
+  document.getElementById('quest-text').textContent = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+  document.getElementById('quest-scroll').classList.remove('hidden');
+  document.getElementById('phase-name').textContent = 'Fate Revealed';
+  document.getElementById('btn-start').disabled = false;
+
+  const msg = f.roll === 20
+    ? 'NATURAL 20. The dungeon trembles. A full hour awaits — then 30 minutes of freedom.'
+    : 'A ' + f.roll + ' — ' + f.title + '. Prepare yourself.';
+  document.getElementById('log-strip').textContent = msg;
+  setTimerDisplay(f.work * 60, f.work * 60);
+}
+
+function startTimer() {
+  const f = state.fate;
+  if (!f) return;
+  state.phase = 'work';
+  state.totalSeconds = f.work * 60;
+  state.remaining = state.totalSeconds;
+  state.paused = false;
+  document.getElementById('phase-name').textContent = 'Working — ' + f.work + ' min';
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-abandon').disabled = false;
+  document.getElementById('d20-btn').disabled = true;
+  document.getElementById('d20-label').textContent = 'In session';
+  document.getElementById('log-strip').textContent = 'The clock turns. Stay the course.';
+  runTimer();
+}
+
+function runTimer() {
+  if (state.interval) clearInterval(state.interval);
+  state.interval = setInterval(() => {
+    if (state.paused) return;
+    state.remaining--;
+    setTimerDisplay(state.remaining, state.totalSeconds);
+    if (state.remaining <= 0) {
+      clearInterval(state.interval);
+      state.interval = null;
+      if (state.phase === 'work') endWork();
+      else if (state.phase === 'break') endBreak();
+    }
+  }, 1000);
+}
+
+function endWork() {
+  state.sessions++;
+  state.phase = 'break';
+  const f = state.fate;
+  state.totalSeconds = f.break * 60;
+  state.remaining = state.totalSeconds;
+  document.getElementById('session-count').textContent = 'Session ' + state.sessions;
+  document.getElementById('phase-name').textContent = 'Rest — ' + f.break + ' min';
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('timer-arc').classList.remove('urgent');
+  const msg = f.roll === 20
+    ? 'Legendary session complete. 30 minutes are yours. Do not waste them on work.'
+    : 'Session complete. Rest now. Do not think about the task.';
+  document.getElementById('log-strip').textContent = msg;
+  runTimer();
+}
+
+function endBreak() {
+  state.phase = 'idle';
+  state.fate = null;
+  state.roll = null;
+  document.getElementById('phase-name').textContent = 'Awaiting the Roll';
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-abandon').disabled = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('d20-btn').disabled = false;
+  document.getElementById('d20-label').textContent = 'Roll for next session';
+  document.getElementById('d20-face').textContent = '20';
+  document.getElementById('fate-scroll').classList.add('hidden');
+  document.getElementById('quest-scroll').classList.add('hidden');
+  document.getElementById('log-strip').textContent = 'Break ended. Roll your fate for the next session.';
+  document.getElementById('timer-digits').textContent = '—:——';
+  document.getElementById('timer-sub').textContent = 'roll to begin';
+  document.getElementById('timer-arc').style.strokeDashoffset = 0;
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  document.getElementById('btn-pause').textContent = state.paused ? 'Resume' : 'Pause';
+  document.getElementById('log-strip').textContent = state.paused
+    ? 'Paused. The dungeon waits, but not forever.'
+    : 'Resumed. Press on.';
+}
+
+function abandonSession() {
+  if (state.interval) clearInterval(state.interval);
+  state.interval = null;
+  state.phase = 'idle';
+  state.fate = null;
+  state.roll = null;
+  state.paused = false;
+  document.getElementById('phase-name').textContent = 'Awaiting the Roll';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-abandon').disabled = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('d20-btn').disabled = false;
+  document.getElementById('d20-label').textContent = 'Roll again';
+  document.getElementById('d20-face').textContent = '20';
+  document.getElementById('fate-scroll').classList.add('hidden');
+  document.getElementById('quest-scroll').classList.add('hidden');
+  document.getElementById('log-strip').textContent = 'Session abandoned. The dungeon does not forget. Roll again.';
+  document.getElementById('timer-digits').textContent = '—:——';
+  document.getElementById('timer-sub').textContent = 'roll to begin';
+  document.getElementById('timer-arc').style.strokeDashoffset = 0;
+}
+
+function setTimerDisplay(remaining, total) {
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  document.getElementById('timer-digits').textContent =
+    String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+  document.getElementById('timer-sub').textContent =
+    state.phase === 'work' ? 'working' : state.phase === 'break' ? 'resting' : 'roll to begin';
+  const arc = document.getElementById('timer-arc');
+  arc.style.strokeDashoffset = CIRCUMFERENCE * (1 - (total > 0 ? remaining / total : 0));
+  if (remaining <= 60 && state.phase === 'work') arc.classList.add('urgent');
+  else arc.classList.remove('urgent');
+}
+</script>
+</body>
+</html>
