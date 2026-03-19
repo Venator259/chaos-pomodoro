@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1208">
+<title>Chaos Pomodoro — Roll Fate. Work Within It.</title>
+<meta name="description" content="A D20-powered Pomodoro timer. Roll for your fate each session.">
+<meta property="og:title" content="Chaos Pomodoro">
+<meta property="og:description" content="A D20-powered Pomodoro timer. Roll fate. Work within it.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parch: #1a1208; --parch2: #221a0a; --gold: #c9943a; --gold2: #e8b84b;
+    --blood: #8b1a1a; --ember: #c44b1a; --bone: #d4c49a; --fog: #7a6e5a;
+    --gloom: #2a2010; --deep: #120c04;
+  }
+  :root.light {
+    --parch: #f0e6d0; --parch2: #e8dcc4; --gold: #8a6a20; --gold2: #6a4f10;
+    --blood: #a02020; --ember: #c05020; --bone: #2a2010; --fog: #8a7e6a;
+    --gloom: #ddd2ba; --deep: #f5efe3;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html, body { background: var(--parch); margin: 0; padding: 0; min-height: 100vh; min-height: 100dvh; transition: background 0.4s; }
+
+  /* ═══════════════════════════════════════════
+     MOBILE LAYOUT (default)
+     ═══════════════════════════════════════════ */
+  #chaos-app {
+    background: var(--parch); min-height: 100vh; min-height: 100dvh;
+    font-family: 'Crimson Text', Georgia, serif; color: var(--bone); position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    transition: background 0.4s, color 0.4s;
+  }
+  #chaos-app::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 0%, rgba(201,148,58,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(139,26,26,0.12) 0%, transparent 50%);
+    pointer-events: none; transition: opacity 0.4s;
+  }
+  .light #chaos-app::before { opacity: 0.3; }
+
+  /* Top bar */
+  .top-bar { width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 8px; position: relative; z-index: 10; }
+  .icon-btn { background: none; border: 1px solid rgba(201,148,58,0.3); border-radius: 4px; color: var(--fog); cursor: pointer; padding: 6px 8px; font-size: 16px; transition: all 0.2s; touch-action: manipulation; line-height: 1; }
+  .icon-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .icon-btn.active { border-color: var(--gold); color: var(--gold2); background: rgba(201,148,58,0.12); }
+
+  /* Title */
+  .title-block { text-align: center; margin-bottom: 10px; }
+  .title-block h1 { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 600; color: var(--gold2); letter-spacing: 3px; text-transform: uppercase; line-height: 1.2; }
+  .title-block .subtitle { font-size: 12px; color: var(--fog); font-style: italic; margin-top: 2px; letter-spacing: 1px; }
+  .rune-divider { text-align: center; color: var(--gold); font-size: 12px; letter-spacing: 8px; margin: 6px 0; opacity: 0.5; }
+
+  /* Phase banner */
+  .phase-banner { background: var(--gloom); border: 1px solid rgba(201,148,58,0.35); border-radius: 4px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 400px; transition: background 0.4s, border-color 0.4s; }
+  .phase-label { font-family: 'Cinzel', serif; font-size: 10px; color: var(--fog); letter-spacing: 2px; text-transform: uppercase; }
+  .phase-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); font-weight: 600; }
+  .session-count { font-size: 12px; color: var(--fog); font-style: italic; white-space: nowrap; }
+
+  /* Timer */
+  .timer-display { text-align: center; margin: 10px 0; position: relative; }
+  .timer-ring { position: relative; display: inline-block; }
+  .timer-svg { transform: rotate(-90deg); }
+  .timer-ring-bg { fill: none; stroke: var(--gloom); stroke-width: 6; transition: stroke 0.4s; }
+  .timer-ring-fg { fill: none; stroke: var(--gold); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
+  .timer-ring-fg.urgent { stroke: var(--blood); }
+  .timer-text-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-digits { font-family: 'Cinzel', serif; font-size: 38px; font-weight: 600; color: var(--bone); letter-spacing: 2px; line-height: 1; transition: color 0.4s; }
+  .timer-sub { font-size: 10px; color: var(--fog); letter-spacing: 2px; margin-top: 3px; }
+
+  /* Scroll panes */
+  .scroll-pane { background: var(--parch2); border: 1px solid rgba(201,148,58,0.25); border-radius: 4px; padding: 10px 12px; margin-bottom: 8px; width: 100%; max-width: 400px; transition: background 0.4s, border-color 0.4s; }
+  .scroll-pane.hidden { display: none; }
+  .scroll-header { font-family: 'Cinzel', serif; font-size: 10px; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .scroll-header span { flex: 1; height: 1px; background: rgba(201,148,58,0.2); }
+  .scroll-body { font-size: 14px; color: var(--bone); line-height: 1.5; font-style: italic; transition: color 0.4s; }
+  .chaos-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-family: 'Cinzel', serif; letter-spacing: 1px; margin-top: 4px; font-style: normal; }
+  .tag-curse { background: rgba(139,26,26,0.4); color: #e88; border: 1px solid var(--blood); }
+  .tag-boon { background: rgba(58,130,58,0.3); color: #8e8; border: 1px solid #3a823a; }
+  .tag-chaos { background: rgba(180,80,20,0.35); color: #f8a060; border: 1px solid var(--ember); }
+  .tag-neutral { background: rgba(120,110,80,0.35); color: var(--bone); border: 1px solid var(--fog); }
+  .tag-legendary { background: rgba(201,148,58,0.25); color: var(--gold2); border: 1px solid var(--gold); }
+  .light .tag-curse { background: rgba(139,26,26,0.15); color: #a02020; }
+  .light .tag-boon { background: rgba(58,130,58,0.12); color: #2a6e2a; }
+  .light .tag-chaos { background: rgba(180,80,20,0.12); color: #a04010; }
+  .light .tag-neutral { background: rgba(120,110,80,0.12); }
+  .light .tag-legendary { background: rgba(201,148,58,0.12); }
+
+  /* D20 */
+  .d20-zone { display: flex; align-items: center; justify-content: center; margin: 8px 0; }
+  .d20-btn { position: relative; cursor: pointer; background: none; border: none; padding: 10px; transition: transform 0.15s; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; }
+  .d20-btn:hover { transform: scale(1.06); }
+  .d20-btn:active { transform: scale(0.95); }
+  .d20-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .d20-btn svg { display: block; }
+  .d20-poly polygon { transition: fill 0.4s, stroke 0.4s; }
+  .light .d20-poly polygon { fill: #e8dcc4; stroke: #8a6a20; }
+  .light .d20-poly polygon:first-child { fill: #ddd2ba; }
+  .d20-btn.rolling .d20-poly { animation: diceRoll 0.8s cubic-bezier(0.36,0.07,0.19,0.97); }
+  @keyframes diceRoll {
+    0%   { transform-origin: 50px 55px; transform: rotate(0deg); }
+    20%  { transform-origin: 50px 55px; transform: rotate(72deg) scale(1.15); }
+    40%  { transform-origin: 50px 55px; transform: rotate(144deg) scale(0.9); }
+    60%  { transform-origin: 50px 55px; transform: rotate(216deg) scale(1.08); }
+    80%  { transform-origin: 50px 55px; transform: rotate(288deg) scale(0.95); }
+    100% { transform-origin: 50px 55px; transform: rotate(360deg) scale(1); }
+  }
+  .d20-btn.nat20 .d20-poly { animation: nat20Roll 1.2s cubic-bezier(0.36,0.07,0.19,0.97); }
+  @keyframes nat20Roll {
+    0%   { transform-origin: 50px 55px; transform: rotate(0deg) scale(1); }
+    25%  { transform-origin: 50px 55px; transform: rotate(180deg) scale(1.3); }
+    50%  { transform-origin: 50px 55px; transform: rotate(360deg) scale(0.85); }
+    75%  { transform-origin: 50px 55px; transform: rotate(540deg) scale(1.2); }
+    100% { transform-origin: 50px 55px; transform: rotate(720deg) scale(1); }
+  }
+  .d20-roll-label { font-family: 'Cinzel', serif; font-size: 10px; color: var(--fog); letter-spacing: 2px; text-align: center; margin-top: 4px; text-transform: uppercase; }
+
+  /* Controls */
+  .controls { display: flex; gap: 8px; width: 100%; max-width: 400px; }
+  .btn-action { flex: 1; padding: 11px 0; min-height: 44px; background: var(--gloom); border: 1px solid rgba(201,148,58,0.35); border-radius: 4px; color: var(--bone); font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.4s; touch-action: manipulation; }
+  .btn-action:hover { background: rgba(201,148,58,0.12); border-color: var(--gold); }
+  .btn-action:active { transform: scale(0.98); }
+  .btn-action:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary { background: rgba(201,148,58,0.18); border-color: var(--gold); color: var(--gold2); }
+  .btn-primary:hover { background: rgba(201,148,58,0.28); }
+  .btn-danger { background: rgba(139,26,26,0.25); border-color: var(--blood); color: #e88; }
+  .btn-danger:hover { background: rgba(139,26,26,0.4); }
+  .light .btn-danger { color: #a02020; }
+
+  /* Log strip */
+  .log-strip { margin-top: 10px; font-size: 12px; color: var(--fog); font-style: italic; text-align: center; min-height: 16px; letter-spacing: 0.5px; width: 100%; max-width: 400px; }
+
+  /* ═══════════════════════════════════════════
+     DESKTOP SIDEBAR PANELS
+     ═══════════════════════════════════════════ */
+  .side-panel { display: none; }
+
+  .history-panel { background: var(--parch2); border: 1px solid rgba(201,148,58,0.2); border-radius: 4px; padding: 14px; width: 260px; max-height: 70vh; overflow-y: auto; transition: background 0.4s, border-color 0.4s; }
+  .history-panel::-webkit-scrollbar { width: 4px; }
+  .history-panel::-webkit-scrollbar-thumb { background: var(--fog); border-radius: 2px; }
+  .panel-title { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .panel-title span { flex: 1; height: 1px; background: rgba(201,148,58,0.2); }
+  .history-entry { padding: 8px 0; border-bottom: 1px solid rgba(201,148,58,0.1); }
+  .history-entry:last-child { border-bottom: none; }
+  .history-roll { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold2); font-weight: 600; }
+  .history-detail { font-size: 12px; color: var(--fog); font-style: italic; margin-top: 2px; }
+  .history-time { font-size: 10px; color: var(--fog); opacity: 0.6; margin-top: 2px; }
+  .history-empty { font-size: 12px; color: var(--fog); font-style: italic; opacity: 0.5; }
+
+  .streak-panel { background: var(--parch2); border: 1px solid rgba(201,148,58,0.2); border-radius: 4px; padding: 14px; width: 260px; transition: background 0.4s, border-color 0.4s; }
+  .streak-stat { text-align: center; margin: 8px 0; }
+  .streak-number { font-family: 'Cinzel', serif; font-size: 28px; color: var(--gold2); font-weight: 700; line-height: 1; }
+  .streak-label { font-size: 10px; color: var(--fog); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+  .streak-row { display: flex; justify-content: space-around; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(201,148,58,0.15); }
+  .streak-mini { text-align: center; }
+  .streak-mini-num { font-family: 'Cinzel', serif; font-size: 16px; color: var(--bone); font-weight: 600; }
+  .streak-mini-label { font-size: 9px; color: var(--fog); letter-spacing: 1px; text-transform: uppercase; }
+
+  .lore-panel { background: var(--parch2); border: 1px solid rgba(201,148,58,0.2); border-radius: 4px; padding: 14px; width: 260px; transition: background 0.4s, border-color 0.4s; }
+  .lore-text { font-size: 13px; color: var(--fog); line-height: 1.6; font-style: italic; }
+  .lore-text p { margin-bottom: 8px; }
+
+  /* Mobile compact stats */
+  .mobile-stats { display: flex; justify-content: center; gap: 16px; width: 100%; max-width: 400px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(201,148,58,0.15); }
+  .m-stat { text-align: center; }
+  .m-stat-num { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold2); font-weight: 600; }
+  .m-stat-label { font-size: 9px; color: var(--fog); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ═══════════════════════════════════════════
+     DESKTOP LAYOUT (768px+)
+     ═══════════════════════════════════════════ */
+  @media (min-width: 768px) {
+    #chaos-app {
+      flex-direction: row; align-items: flex-start; justify-content: center;
+      gap: 24px; padding: 32px 24px;
+    }
+    .side-panel { display: block; }
+    .side-panel-left, .side-panel-right { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 32px; }
+    .center-column { display: flex; flex-direction: column; align-items: center; min-width: 340px; max-width: 420px; }
+    .title-block h1 { font-size: 24px; letter-spacing: 4px; }
+    .title-block .subtitle { font-size: 13px; }
+    .timer-digits { font-size: 42px; }
+    .phase-name { font-size: 15px; }
+    .scroll-body { font-size: 15px; }
+    .mobile-stats { display: none; }
+    .top-bar { position: absolute; top: 16px; right: 20px; width: auto; }
+    .desktop-lore { display: block; }
+    .mobile-only { display: none; }
+  }
+
+  @media (max-width: 767px) {
+    .side-panel-left, .side-panel-right { display: none !important; }
+    .center-column { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .desktop-lore { display: none; }
+    .mobile-only { display: block; }
+  }
+
+  @media (max-width: 380px) {
+    .title-block h1 { font-size: 17px; letter-spacing: 2px; }
+    .timer-digits { font-size: 32px; }
+    .phase-banner { flex-direction: column; align-items: flex-start; gap: 3px; }
+    .btn-action { font-size: 10px; letter-spacing: 1px; }
+    .d20-btn svg { width: 80px; height: 88px; }
+  }
+
+  /* Animations */
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .scroll-pane:not(.hidden) { animation: fadeSlideIn 0.3s ease-out; }
+  .history-entry { animation: fadeSlideIn 0.25s ease-out; }
+</style>
+</head>
+<body>
+<div id="chaos-app">
+
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-sound" onclick="toggleSound()" title="Toggle sound">&#x1f50a;</button>
+    <button class="icon-btn" id="btn-theme" onclick="toggleTheme()" title="Toggle theme">&#x263e;</button>
+  </div>
+
+  <!-- LEFT SIDEBAR (Desktop only) -->
+  <div class="side-panel side-panel-left">
+    <div class="streak-panel">
+      <div class="panel-title">Streak <span></span></div>
+      <div class="streak-stat">
+        <div class="streak-number" id="streak-num">0</div>
+        <div class="streak-label">Sessions Today</div>
+      </div>
+      <div class="streak-row">
+        <div class="streak-mini">
+          <div class="streak-mini-num" id="total-work-min">0</div>
+          <div class="streak-mini-label">Min Worked</div>
+        </div>
+        <div class="streak-mini">
+          <div class="streak-mini-num" id="best-roll">—</div>
+          <div class="streak-mini-label">Best Roll</div>
+        </div>
+        <div class="streak-mini">
+          <div class="streak-mini-num" id="curses-count">0</div>
+          <div class="streak-mini-label">Curses</div>
+        </div>
+      </div>
+    </div>
+    <div class="lore-panel desktop-lore">
+      <div class="panel-title">Lore <span></span></div>
+      <div class="lore-text" id="lore-text">
+        <p>The Chaos Pomodoro is no ordinary timer. It is a dungeon — and you are its prisoner.</p>
+        <p>Each session begins with a roll of the d20. Fate decides your labor and your rest. Curses shorten your work but mock your discipline. Boons reward the bold with deep focus and earned reprieve.</p>
+        <p>A Natural 20 is legend. A full hour of glory, followed by 30 minutes of absolute freedom. The dungeon bows.</p>
+        <p>Roll well. Work hard. Survive.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Main Timer -->
+  <div class="center-column">
+    <div class="title-block">
+      <h1>Chaos Pomodoro</h1>
+      <p class="subtitle">Roll fate. Work within it.</p>
+    </div>
+    <div class="rune-divider">✦ ✦ ✦</div>
+
+    <div class="phase-banner">
+      <div>
+        <div class="phase-label">Current Phase</div>
+        <div class="phase-name" id="phase-name">Awaiting the Roll</div>
+      </div>
+      <div class="session-count" id="session-count">Session 0</div>
+    </div>
+
+    <div class="timer-display">
+      <div class="timer-ring">
+        <svg class="timer-svg" width="150" height="150" viewBox="0 0 150 150">
+          <circle class="timer-ring-bg" cx="75" cy="75" r="62"/>
+          <circle class="timer-ring-fg" id="timer-arc" cx="75" cy="75" r="62"
+                  stroke-dasharray="389.56" stroke-dashoffset="0"/>
+        </svg>
+        <div class="timer-text-wrap">
+          <div class="timer-digits" id="timer-digits">—:——</div>
+          <div class="timer-sub" id="timer-sub">roll to begin</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-pane hidden" id="fate-scroll">
+      <div class="scroll-header">Fate Decreed <span></span></div>
+      <div class="scroll-body" id="fate-text"></div>
+      <div id="fate-tag"></div>
+    </div>
+
+    <div class="scroll-pane hidden" id="quest-scroll">
+      <div class="scroll-header">Quest <span></span></div>
+      <div class="scroll-body" id="quest-text"></div>
+    </div>
+
+    <div class="d20-zone">
+      <div>
+        <button class="d20-btn" id="d20-btn" onclick="rollDice()">
+          <svg width="100" height="110" viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg">
+            <g class="d20-poly">
+              <polygon points="50,4 96,28 96,82 50,106 4,82 4,28" fill="#1e1508" stroke="#c9943a" stroke-width="1.5"/>
+              <polygon points="50,4 72,28 50,28 28,28" fill="#2a1e0a" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="50,106 72,82 50,82 28,82" fill="#2a1e0a" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="4,28 28,28 16,55" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="96,28 84,55 72,28" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="4,82 16,55 28,82" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="96,82 72,82 84,55" fill="#241708" stroke="#c9943a" stroke-width="1"/>
+              <polygon points="28,28 50,28 28,55 16,55" fill="#1e1206" stroke="#c9943a" stroke-width="0.8"/>
+              <polygon points="50,28 72,28 84,55 50,55" fill="#221507" stroke="#c9943a" stroke-width="0.8"/>
+              <polygon points="28,55 50,55 50,82 28,82" fill="#1e1206" stroke="#c9943a" stroke-width="0.8"/>
+              <polygon points="50,55 84,55 72,82 50,82" fill="#221507" stroke="#c9943a" stroke-width="0.8"/>
+              <polygon points="16,55 28,55 28,82 4,82" fill="#1a1005" stroke="#c9943a" stroke-width="0.8"/>
+              <polygon points="84,55 96,82 72,82 84,55" fill="#1a1005" stroke="#c9943a" stroke-width="0.8"/>
+              <text x="50" y="62" text-anchor="middle" font-family="Cinzel, serif" font-size="22" font-weight="600" fill="#e8b84b" id="d20-face">20</text>
+            </g>
+          </svg>
+        </button>
+        <div class="d20-roll-label" id="d20-label">Click to roll</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-action btn-primary" id="btn-start" onclick="startTimer()" disabled>Begin</button>
+      <button class="btn-action" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
+      <button class="btn-action btn-danger" id="btn-abandon" onclick="abandonSession()" disabled>Abandon</button>
+    </div>
+
+    <div class="log-strip" id="log-strip">The dungeon awaits your first move.</div>
+
+    <!-- Mobile compact stats -->
+    <div class="mobile-stats" id="mobile-stats">
+      <div class="m-stat">
+        <div class="m-stat-num" id="m-sessions">0</div>
+        <div class="m-stat-label">Sessions</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-num" id="m-minutes">0</div>
+        <div class="m-stat-label">Min Worked</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-num" id="m-best">—</div>
+        <div class="m-stat-label">Best Roll</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR (Desktop only) -->
+  <div class="side-panel side-panel-right">
+    <div class="history-panel" id="history-panel">
+      <div class="panel-title">Session Log <span></span></div>
+      <div id="history-list">
+        <div class="history-empty">No sessions yet. Roll the die.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CIRCUMFERENCE = 2 * Math.PI * 62;
+
+const FATE_TABLE = [
+  { roll:1,  type:'curse',   work:5,   break:15, title:"Critical Failure",
+    desc:"The gods mock you. 5 minutes of toil, then 15 of enforced rest. You may not look at your task during the break.",
+    tag:'tag-curse', chaos:"Stand up and walk to a different room before sitting back down." },
+  { roll:2,  type:'curse',   work:10,  break:5,  title:"The Dungeon Drains You",
+    desc:"Damp walls, flickering torch. 10 minutes of labor in near-darkness.",
+    tag:'tag-curse', chaos:"Work with one hand only." },
+  { roll:3,  type:'curse',   work:15,  break:5,  title:"Cursed Scroll",
+    desc:"Something's wrong with your tools. 15 minutes. Speak one problem aloud before you begin.",
+    tag:'tag-curse', chaos:"Narrate your work quietly as you do it." },
+  { roll:4,  type:'neutral', work:20,  break:5,  title:"The Standard Path",
+    desc:"A modest 20-minute quest. Neither cursed nor blessed. Earn your rest.",
+    tag:'tag-neutral', chaos:null },
+  { roll:5,  type:'neutral', work:25,  break:7,  title:"Torch & Shadow",
+    desc:"25 minutes in the corridor. The exit is visible but not close.",
+    tag:'tag-neutral', chaos:null },
+  { roll:6,  type:'neutral', work:20,  break:8,  title:"The Winding Stair",
+    desc:"20 minutes of ascent. Steady footing required.",
+    tag:'tag-neutral', chaos:null },
+  { roll:7,  type:'chaos',   work:25,  break:5,  title:"The Goblin's Deal",
+    desc:"25 minutes — but write your next task on paper before starting.",
+    tag:'tag-chaos', chaos:"Write your single most important next step on paper right now." },
+  { roll:8,  type:'neutral', work:30,  break:8,  title:"Guarded Corridor",
+    desc:"30 minutes. Stay vigilant. Keep distractions beyond the threshold.",
+    tag:'tag-neutral', chaos:null },
+  { roll:9,  type:'boon',    work:25,  break:10, title:"Minor Enchantment",
+    desc:"25 minutes of work, and fate grants a 10-minute restoration.",
+    tag:'tag-boon', chaos:null },
+  { roll:10, type:'neutral', work:30,  break:10, title:"The Standard Dungeon",
+    desc:"A true 30-minute Pomodoro. Classic. Respectable. No tricks.",
+    tag:'tag-neutral', chaos:null },
+  { roll:11, type:'neutral', work:35,  break:10, title:"Second Watch",
+    desc:"The dungeon deepens. 35 minutes of unbroken effort.",
+    tag:'tag-neutral', chaos:null },
+  { roll:12, type:'chaos',   work:40,  break:8,  title:"Haste Enchantment",
+    desc:"40 minutes — pick ONE task and do only that. No switching.",
+    tag:'tag-chaos', chaos:"Choose one task before the timer starts. You cannot switch." },
+  { roll:13, type:'boon',    work:35,  break:12, title:"Blessed Chamber",
+    desc:"35 minutes of work blessed by 12 minutes of genuine restoration.",
+    tag:'tag-boon', chaos:null },
+  { roll:14, type:'chaos',   work:45,  break:10, title:"The Dragon's Challenge",
+    desc:"45 minutes. Stand and work. You may not sit during this session.",
+    tag:'tag-chaos', chaos:"You must stand for the entire session." },
+  { roll:15, type:'boon',    work:40,  break:12, title:"Ancient Boon",
+    desc:"The treasure room opens. 40 focused minutes, 12 restful ones.",
+    tag:'tag-boon', chaos:null },
+  { roll:16, type:'chaos',   work:30,  break:15, title:"The Mirror Curse",
+    desc:"30 work, 15 rest — but during the break all screens must close.",
+    tag:'tag-chaos', chaos:"Break is fully screen-free. Eyes closed, walk outside, or stretch." },
+  { roll:17, type:'boon',    work:50,  break:15, title:"Champion's Focus",
+    desc:"50 minutes of sharpened will. The dungeon bends to your momentum.",
+    tag:'tag-boon', chaos:null },
+  { roll:18, type:'boon',    work:55,  break:15, title:"The Legendary Run",
+    desc:"55 minutes of deep-dungeon focus. The bards will record this feat.",
+    tag:'tag-boon', chaos:null },
+  { roll:19, type:'boon',    work:60,  break:20, title:"Near-Perfect",
+    desc:"A full hour of focused glory rewarded with 20 minutes of well-earned rest.",
+    tag:'tag-boon', chaos:null },
+  { roll:20, type:'boon',    work:60,  break:30, title:"Natural 20 — LEGENDARY",
+    desc:"Maximum work. Maximum rest. A full hour of glory, then 30 minutes of absolute freedom. The dungeon bows. You ARE the chaos.",
+    tag:'tag-legendary', chaos:"Reward yourself with something genuinely good after the break." },
+];
+
+const QUESTS = [
+  "Clear one physical item from your desk or nearby space.",
+  "Write down what 'done' looks like for your current task.",
+  "Send the reply you've been putting off.",
+  "Process 10 inbox items — archive, reply, or delete.",
+  "Identify the one thing that, if finished, makes today a win.",
+  "Review yesterday's notes for anything unfinished.",
+  "Write the first sentence of something you've been avoiding.",
+  "Eliminate one open browser tab you don't need.",
+  "Label or file three loose documents.",
+  "Identify your next physical action on your hardest task.",
+  "Write a 3-bullet status note for your current project.",
+  "Set a timer and do 5 minutes of the thing you least want to do.",
+  "Clear your desktop of anything older than one week.",
+  "Read one thing you've been putting off reading.",
+  "Draft a one-sentence summary of what you're working on.",
+  "Check your calendar for tomorrow and prepare one thing.",
+  "Capture every open loop in your head onto paper.",
+  "Do the most boring part of your current task first.",
+  "Update your task list to reflect current reality.",
+  "Pick the smallest possible version of your next goal.",
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let state = {
+  phase: 'idle', roll: null, fate: null,
+  totalSeconds: 0, remaining: 0, interval: null,
+  sessions: 0, paused: false,
+  history: [], totalWorkMin: 0, bestRoll: 0, curses: 0,
+  soundOn: true, lightTheme: false
+};
+
+// ═══════════════════════════════════════════
+// SOUND (Web Audio API — no files needed)
+// ═══════════════════════════════════════════
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playDiceSound() {
+  if (!state.soundOn) return;
+  const ctx = getAudioCtx();
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 800 + Math.random() * 600;
+    osc.type = 'triangle';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.06);
+    osc.start(ctx.currentTime + i * 0.08);
+    osc.stop(ctx.currentTime + i * 0.08 + 0.06);
+  }
+}
+
+function playNat20Sound() {
+  if (!state.soundOn) return;
+  const ctx = getAudioCtx();
+  [261.6, 329.6, 392, 523.3].forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = f;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + i * 0.12 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.6);
+    osc.start(ctx.currentTime + i * 0.12);
+    osc.stop(ctx.currentTime + i * 0.12 + 0.6);
+  });
+}
+
+function playTimerEndSound() {
+  if (!state.soundOn) return;
+  const ctx = getAudioCtx();
+  [660, 880].forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = f;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.3 + 0.8);
+    osc.start(ctx.currentTime + i * 0.3);
+    osc.stop(ctx.currentTime + i * 0.3 + 0.8);
+  });
+}
+
+// ═══════════════════════════════════════════
+// THEME / SOUND TOGGLES
+// ═══════════════════════════════════════════
+function toggleTheme() {
+  state.lightTheme = !state.lightTheme;
+  document.documentElement.classList.toggle('light', state.lightTheme);
+  document.getElementById('btn-theme').textContent = state.lightTheme ? '☽' : '☾';
+  document.querySelector('meta[name="theme-color"]').content = state.lightTheme ? '#f0e6d0' : '#1a1208';
+  try { localStorage.setItem('cp-theme', state.lightTheme ? 'light' : 'dark'); } catch(e) {}
+}
+
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  const btn = document.getElementById('btn-sound');
+  btn.textContent = state.soundOn ? '\u{1F50A}' : '\u{1F507}';
+  btn.classList.toggle('active', state.soundOn);
+  try { localStorage.setItem('cp-sound', state.soundOn ? 'on' : 'off'); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// CORE GAME LOGIC
+// ═══════════════════════════════════════════
+function rollDice() {
+  if (state.interval) return;
+  const btn = document.getElementById('d20-btn');
+  const face = document.getElementById('d20-face');
+  const label = document.getElementById('d20-label');
+  btn.classList.remove('nat20');
+  btn.classList.add('rolling');
+  btn.disabled = true;
+  playDiceSound();
+  let tick = 0;
+  const flash = setInterval(() => {
+    face.textContent = Math.ceil(Math.random() * 20);
+    tick++;
+    if (tick >= 12) {
+      clearInterval(flash);
+      const result = Math.ceil(Math.random() * 20);
+      face.textContent = result;
+      state.roll = result;
+      state.fate = FATE_TABLE[result - 1];
+      btn.classList.remove('rolling');
+      if (result === 20) {
+        btn.classList.add('nat20');
+        playNat20Sound();
+        setTimeout(() => btn.classList.remove('nat20'), 1300);
+      }
+      label.textContent = 'Rolled: ' + result;
+      showFate();
+      btn.disabled = false;
+    }
+  }, 65);
+}
+
+function showFate() {
+  const f = state.fate;
+  document.getElementById('fate-text').textContent =
+    f.title + '. ' + f.desc + ' Work: ' + f.work + ' min. Break: ' + f.break + ' min.';
+  const tagMap = { curse:'Cursed', boon:'Boon', chaos:'Chaotic', neutral:'Standard' };
+  const tagLabel = f.roll === 20 ? 'Legendary' : tagMap[f.type];
+  let tagHTML = '<span class="chaos-tag ' + f.tag + '">' + tagLabel + '</span>';
+  if (f.chaos) tagHTML += ' <span class="chaos-tag tag-chaos">Chaos: ' + f.chaos + '</span>';
+  document.getElementById('fate-tag').innerHTML = tagHTML;
+  document.getElementById('fate-scroll').classList.remove('hidden');
+  document.getElementById('quest-text').textContent = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+  document.getElementById('quest-scroll').classList.remove('hidden');
+  document.getElementById('phase-name').textContent = 'Fate Revealed';
+  document.getElementById('btn-start').disabled = false;
+  const msg = f.roll === 20
+    ? 'NATURAL 20. The dungeon trembles. A full hour awaits — then 30 minutes of freedom.'
+    : 'A ' + f.roll + ' — ' + f.title + '. Prepare yourself.';
+  document.getElementById('log-strip').textContent = msg;
+  setTimerDisplay(f.work * 60, f.work * 60);
+}
+
+function startTimer() {
+  const f = state.fate;
+  if (!f) return;
+  state.phase = 'work';
+  state.totalSeconds = f.work * 60;
+  state.remaining = state.totalSeconds;
+  state.paused = false;
+  document.getElementById('phase-name').textContent = 'Working — ' + f.work + ' min';
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-abandon').disabled = false;
+  document.getElementById('d20-btn').disabled = true;
+  document.getElementById('d20-label').textContent = 'In session';
+  document.getElementById('log-strip').textContent = 'The clock turns. Stay the course.';
+  runTimer();
+}
+
+function runTimer() {
+  if (state.interval) clearInterval(state.interval);
+  state.interval = setInterval(() => {
+    if (state.paused) return;
+    state.remaining--;
+    setTimerDisplay(state.remaining, state.totalSeconds);
+    if (state.remaining <= 0) {
+      clearInterval(state.interval);
+      state.interval = null;
+      playTimerEndSound();
+      if (state.phase === 'work') endWork();
+      else if (state.phase === 'break') endBreak();
+    }
+  }, 1000);
+}
+
+function endWork() {
+  state.sessions++;
+  const f = state.fate;
+  state.totalWorkMin += f.work;
+  if (f.roll > state.bestRoll) state.bestRoll = f.roll;
+  if (f.type === 'curse') state.curses++;
+  state.history.unshift({
+    roll: f.roll, title: f.title, type: f.type, work: f.work,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  updateStats();
+  updateHistory();
+  state.phase = 'break';
+  state.totalSeconds = f.break * 60;
+  state.remaining = state.totalSeconds;
+  document.getElementById('session-count').textContent = 'Session ' + state.sessions;
+  document.getElementById('phase-name').textContent = 'Rest — ' + f.break + ' min';
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('timer-arc').classList.remove('urgent');
+  const msg = f.roll === 20
+    ? 'Legendary session complete. 30 minutes are yours. Do not waste them on work.'
+    : 'Session complete. Rest now. Do not think about the task.';
+  document.getElementById('log-strip').textContent = msg;
+  runTimer();
+}
+
+function endBreak() {
+  state.phase = 'idle'; state.fate = null; state.roll = null;
+  document.getElementById('phase-name').textContent = 'Awaiting the Roll';
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-abandon').disabled = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('d20-btn').disabled = false;
+  document.getElementById('d20-label').textContent = 'Roll for next session';
+  document.getElementById('d20-face').textContent = '20';
+  document.getElementById('fate-scroll').classList.add('hidden');
+  document.getElementById('quest-scroll').classList.add('hidden');
+  document.getElementById('log-strip').textContent = 'Break ended. Roll your fate for the next session.';
+  document.getElementById('timer-digits').textContent = '\u2014:\u2014\u2014';
+  document.getElementById('timer-sub').textContent = 'roll to begin';
+  document.getElementById('timer-arc').style.strokeDashoffset = 0;
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  document.getElementById('btn-pause').textContent = state.paused ? 'Resume' : 'Pause';
+  document.getElementById('log-strip').textContent = state.paused
+    ? 'Paused. The dungeon waits, but not forever.' : 'Resumed. Press on.';
+}
+
+function abandonSession() {
+  if (state.interval) clearInterval(state.interval);
+  state.interval = null;
+  state.phase = 'idle'; state.fate = null; state.roll = null; state.paused = false;
+  document.getElementById('phase-name').textContent = 'Awaiting the Roll';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-abandon').disabled = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('d20-btn').disabled = false;
+  document.getElementById('d20-label').textContent = 'Roll again';
+  document.getElementById('d20-face').textContent = '20';
+  document.getElementById('fate-scroll').classList.add('hidden');
+  document.getElementById('quest-scroll').classList.add('hidden');
+  document.getElementById('log-strip').textContent = 'Session abandoned. The dungeon does not forget. Roll again.';
+  document.getElementById('timer-digits').textContent = '\u2014:\u2014\u2014';
+  document.getElementById('timer-sub').textContent = 'roll to begin';
+  document.getElementById('timer-arc').style.strokeDashoffset = 0;
+}
+
+function setTimerDisplay(remaining, total) {
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  document.getElementById('timer-digits').textContent =
+    String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+  document.getElementById('timer-sub').textContent =
+    state.phase === 'work' ? 'working' : state.phase === 'break' ? 'resting' : 'roll to begin';
+  const arc = document.getElementById('timer-arc');
+  arc.style.strokeDashoffset = CIRCUMFERENCE * (1 - (total > 0 ? remaining / total : 0));
+  if (remaining <= 60 && state.phase === 'work') arc.classList.add('urgent');
+  else arc.classList.remove('urgent');
+}
+
+// ═══════════════════════════════════════════
+// STATS & HISTORY
+// ═══════════════════════════════════════════
+function updateStats() {
+  document.getElementById('streak-num').textContent = state.sessions;
+  document.getElementById('total-work-min').textContent = state.totalWorkMin;
+  document.getElementById('best-roll').textContent = state.bestRoll || '\u2014';
+  document.getElementById('curses-count').textContent = state.curses;
+  document.getElementById('m-sessions').textContent = state.sessions;
+  document.getElementById('m-minutes').textContent = state.totalWorkMin;
+  document.getElementById('m-best').textContent = state.bestRoll || '\u2014';
+}
+
+function updateHistory() {
+  const list = document.getElementById('history-list');
+  if (state.history.length === 0) {
+    list.innerHTML = '<div class="history-empty">No sessions yet. Roll the die.</div>';
+    return;
+  }
+  list.innerHTML = state.history.slice(0, 20).map(h => {
+    const typeMap = { curse:'Cursed', boon:'Boon', chaos:'Chaotic', neutral:'Standard' };
+    const label = h.roll === 20 ? 'Legendary' : typeMap[h.type];
+    return '<div class="history-entry">' +
+      '<div class="history-roll">\u2684 ' + h.roll + ' \u2014 ' + h.title + '</div>' +
+      '<div class="history-detail">' + label + ' \u00B7 ' + h.work + ' min work</div>' +
+      '<div class="history-time">' + h.time + '</div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+(function init() {
+  try {
+    if (localStorage.getItem('cp-theme') === 'light') toggleTheme();
+    if (localStorage.getItem('cp-sound') === 'off') toggleSound();
+  } catch(e) {}
+  const soundBtn = document.getElementById('btn-sound');
+  soundBtn.textContent = state.soundOn ? '\u{1F50A}' : '\u{1F507}';
+  soundBtn.classList.toggle('active', state.soundOn);
+})();
+</script>
+</body>
+</html>
